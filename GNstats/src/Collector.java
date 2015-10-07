@@ -5,11 +5,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Date;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.MongoException;
 import org.bson.Document;
 
@@ -17,10 +19,14 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
+
+
 public class Collector {
 
 	public static void main(String[] args) {
-
+        
+		Date date = new Date();
+		String current_datetime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date);
         Connection conn = null;
         Statement st = null;
         ResultSet rs = null;
@@ -30,6 +36,7 @@ public class Collector {
         String password = "";
         
         int duplicate_counter = 0;
+        int insert_counter = 0;
     	
         /*** Disable mongo logging to console ***/
         Logger mongoLogger = Logger.getLogger( "org.mongodb.driver" );
@@ -49,6 +56,14 @@ public class Collector {
            	java.util.Date event_time_m = null;
            	java.util.Date submit_time_m = null;
            	java.util.Date start_time_m = null;
+           	
+            try
+            {
+                //database.getCollection("test").createIndex(new Document(new Document("event_time", 1).append("job_id", 1)).append("unique", true));
+            	database.getCollection("test").createIndex(new Document("event_time", 1).append("job_id", 1), new IndexOptions().unique(true));
+            } catch (  MongoException e) {
+            	System.out.println("Exceprion: create index");
+            }
 
             while (rs.next()){ 
             	String event_time = rs.getString("event_time");
@@ -129,6 +144,7 @@ public class Collector {
 			               	.append("job_description", job_description)
 			               	.append("custom_app", custom_app)
 			               	.append("custom_iteration", custom_iteration));
+               	 insert_counter = insert_counter + 1;
             	}  catch (  MongoException e) {
             		//System.err.println("Duplicate: " + e);
             		duplicate_counter = duplicate_counter + 1;
@@ -169,8 +185,8 @@ public class Collector {
             }
             
         }
-        
-		System.out.println("Duplicates: " + duplicate_counter);
+
+        System.out.println(current_datetime + " Inserted: " + insert_counter + " Duplicates: " + duplicate_counter);
 
 	}
 }
